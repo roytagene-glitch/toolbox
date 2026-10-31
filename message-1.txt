@@ -1,0 +1,724 @@
+--[[
+========================================================================
+  _  __      _                  ______           
+ | |/ /     (_)                |  ____|          
+ | ' /  __ _ _ _______   ___   | |__   _ ____   __
+ |  <  / _` | |_  / _ \ / _ \  |  __| | '_ \ \ / /
+ | . \| (_| | |/ / (_) | (_) | | |____| | | \ V / 
+ |_|\_\__,_|_/___\___/ \___/  |______|_| |_|\_/  
+                                                 
+ [*] Protocol    : Kaizoo Environment API
+ [*] Operation   : Deobfuscation & Optimization
+========================================================================
+]]--
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local InsertService = game:GetService("InsertService")
+local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+
+pcall(function()
+	local roots = { game:GetService("CoreGui") }
+	if gethui then table.insert(roots, gethui()) end
+	local pg = player:FindFirstChild("PlayerGui")
+	if pg then table.insert(roots, pg) end
+	for _, root in ipairs(roots) do
+		local old = root:FindFirstChild("DhafinToolbox")
+		if old then old:Destroy() end
+	end
+end)
+
+local C = {
+	BG    = Color3.fromRGB(30, 31, 34),
+	BAR   = Color3.fromRGB(22, 23, 25),
+	PANEL = Color3.fromRGB(40, 42, 46),
+	TILE  = Color3.fromRGB(45, 47, 52),
+	LINE  = Color3.fromRGB(64, 67, 73),
+	TEXT  = Color3.fromRGB(236, 238, 241),
+	SUB   = Color3.fromRGB(148, 153, 163),
+	BLUE  = Color3.fromRGB(0, 162, 255),
+	BLUE2 = Color3.fromRGB(56, 182, 255),
+	GREEN = Color3.fromRGB(0, 190, 110),
+	RED   = Color3.fromRGB(232, 72, 85),
+	WHITE = Color3.new(1, 1, 1),
+}
+
+local function mk(class, props, parent)
+	local o = Instance.new(class)
+	for k, v in pairs(props) do o[k] = v end
+	o.Parent = parent
+	return o
+end
+local function round(o, r)
+	local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r or 6); c.Parent = o; return c
+end
+local function line(o, col, th)
+	local s = Instance.new("UIStroke")
+	s.Color = col or C.LINE; s.Thickness = th or 1
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; s.Parent = o
+	return s
+end
+local function txt(parent, text, size, col, font, align)
+	return mk("TextLabel", {
+		BackgroundTransparency = 1, Text = text, TextSize = size or 12, TextColor3 = col or C.TEXT,
+		Font = font or Enum.Font.Gotham, TextXAlignment = align or Enum.TextXAlignment.Left,
+	}, parent)
+end
+local function hov(b, normal, over)
+	b.MouseEnter:Connect(function() b.BackgroundColor3 = over end)
+	b.MouseLeave:Connect(function() b.BackgroundColor3 = normal end)
+end
+local function button(parent, text, size, bg, fg)
+	local b = mk("TextButton", {
+		BackgroundColor3 = bg, Text = text, TextSize = size or 11, TextColor3 = fg or C.WHITE,
+		Font = Enum.Font.GothamBold, AutoButtonColor = false, BorderSizePixel = 0,
+	}, parent)
+	return b
+end
+
+local LOGO_B64 = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAAAflBMVEUAnv4AAAAApf8Afv8Aqv8A//8AnP8Alf8Al/4Am/4Amf4Amv8AAP8Aif8Ak/8AVv8Ajf4Av/8AZ/8AO/8AVdQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAc8M53AAAAIHRSTlP+AP4DAwHPLk6wbpABExIEIgQFBAYAAAAAAAAAAAAAACkmARwAAAPySURBVHjatZnplqsgEISbzSVBYzL3/Z/1ooI2Oyj6a86c4DdWkbKLAeJfchxf/fqD+HJBbl7g/YaRHiiF7j3MG4Qx2RowUFCIHTKtv+KMNQRw8laA9dogSq3t7uyiWh5AEtZpgIZAZyy5AoGABej+J+RUS94FvFyAqxbn7BZgDAAw5FdliQsQZIYIAKm1WcKKIODtoSFxfwyZyyyBIguSlrCkJT6gKwBgiExvYHAtmKAQ4G7gSKZAtQWhB0l8S8BV6F0JwGp9AhvYlYh1FwAGEsoU8KMaLl8hS+DCJs1b8jpjHhyPx5sA71sCTlRDA8BhyZopYD9A3+j+B2SEthZ4DBcwtga8wMqJZhaY+0MPt3IiC+g+GPC9lBNJwJvYEnWtAQMGsLqoLrJgtgHtLVDb5m5UZyz4Yg8+D1jAoVVUBy2YiIRHc4LguM5ENaUXcgIDclE9dtsLqwrQY0A6qin8yf417u+S4k36U382lFlAR7G+xqcaiLKAEwxIWaDknNWwu35wGt5laqlNyk5Abqpe5VSf0m1tGfKWUFgwYI3q+AraMWJGNrHPur+cWrSTwnrpp/Td5USpcqgVh6icYN5cNEf03eW0yyJjIrVkywkboPXt/RXqzUdCHUCptUHUs3fug6w5Ibwn0CuYo5aSM9pjdP1wl2xRHWn6fNN3Riu0nLFLOhuYHjkRBIRWDLbHoSVareNbojY2xwDudiCBLZmDT+CWDS3wnilqjSCeyf6K7UW0xATyT0m0wKwfnH4wDJESr9UKPcASruTSWgJnTkQ60LoitEXVDNKNwxKu5JJzDNiiurLEm2zJnZIAjmpaUeL1DKIbTR89uAK3fZt6MmXOVaQ81pglf6FKDqH2XVDiGVmsNY7ANiA4VdP0wWBoDMRLLEBspEuZGJlBLIFPiWR8pIscDDone96SM1vAl7OkxLPMDKJzwgAKRjqnxM+ZGeTMLihv39qSfjVRiMwMggApOeOW/GVmEH4CWG373i1JDiznDLIBLkzVyZHImkHgkfaN3k8gH6h+eAaBR9o3jopH2jfKYGBPtG8MSE/VF6ufBXigfQsrrp9o3xjwSPvGgPbtm9kSPdK+MeDRnNgBlDY9y+ztSRy28bkdxIrqY/D61Jb4wqjWcW3KRhOIa8H+BGbgnktLfGFUWwUk1RhrcoKJxL9YdKOZr1vi10X/X42Bxng5JyIt05T4qdoS074zAKcxVlhi2ncBIFXiKzZpGhCo5NUW5AC6xOtTqBwET9UVALSBM2q5UV0BQCU+cXAVsKAGkLeE9ncB3imJBcEnezcAyJJ/tloqJzhpAwhnSuBk7w7Az5Tgyd4twK7W18T8GDrb+A+hLCnmyI0UtgAAAABJRU5ErkJggg=="
+local B64CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local function b64decode(data)
+	local lookup = {}
+	for i = 1, #B64CHARS do lookup[B64CHARS:byte(i)] = i - 1 end
+	local out, n, buf, bits = {}, 0, 0, 0
+	for i = 1, #data do
+		local v = lookup[data:byte(i)]
+		if v then
+			buf = buf * 64 + v; bits += 6
+			if bits >= 8 then
+				bits -= 8
+				local byte = math.floor(buf / 2 ^ bits)
+				buf = buf % 2 ^ bits
+				n += 1; out[n] = string.char(byte)
+			end
+		end
+	end
+	return table.concat(out)
+end
+local LOGO_ASSET
+pcall(function()
+	if writefile and getcustomasset then
+		writefile("DhafinToolbox_logo.png", b64decode(LOGO_B64))
+		local a = getcustomasset("DhafinToolbox_logo.png")
+		if a and a ~= "" then LOGO_ASSET = a end
+	end
+end)
+
+local function makeLogo(parent, size, pos)
+	if LOGO_ASSET then
+		return mk("ImageLabel", {
+			Size = UDim2.fromOffset(size, size), Position = pos, BackgroundTransparency = 1,
+			Image = LOGO_ASSET, ScaleType = Enum.ScaleType.Fit, BorderSizePixel = 0,
+		}, parent)
+	end
+	local f = mk("Frame", { Size = UDim2.fromOffset(size, size), Position = pos, BackgroundTransparency = 1, Rotation = 14 }, parent)
+	mk("Frame", { Size = UDim2.fromScale(0.82, 0.38), Position = UDim2.fromScale(0.1, 0.1), BackgroundColor3 = C.BLUE, BorderSizePixel = 0 }, f)
+	mk("Frame", { Size = UDim2.fromScale(0.82, 0.38), Position = UDim2.fromScale(0.08, 0.52), BackgroundColor3 = C.BLUE, BorderSizePixel = 0 }, f)
+	return f
+end
+
+local CATS = {
+	{ key = "Model",     label = "Models",     id = 10 },
+	{ key = "Decal",     label = "Decals",     id = 13 },
+	{ key = "Audio",     label = "Audio",      id = 3 },
+	{ key = "Mesh",      label = "Meshes",     id = 4 },
+	{ key = "Animation", label = "Animations", id = 24 },
+	{ key = "Texture",   label = "Textures",   id = 12 },
+}
+local S = {
+	cat = CATS[1], page = 1, kw = "", token = 0, cards = {},
+	opts = { anchor = true, hifi = true, autorun = true },
+}
+
+local gui = mk("ScreenGui", {
+	Name = "DhafinToolbox", ResetOnSpawn = false, IgnoreGuiInset = true,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+}, nil)
+do
+	local ok = pcall(function() gui.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+	if not ok or not gui.Parent then gui.Parent = player:WaitForChild("PlayerGui") end
+end
+
+local W, H = 520, 330
+local win = mk("Frame", {
+	Name = "Window", Size = UDim2.fromOffset(W, H), Position = UDim2.new(0.5, -W / 2, 0.5, -H / 2),
+	BackgroundColor3 = C.BG, BorderSizePixel = 0, ClipsDescendants = true, Active = true,
+}, gui)
+round(win, 10); line(win, C.LINE, 1)
+
+local TB = 42
+local topbar = mk("Frame", { Size = UDim2.new(1, 0, 0, TB), BackgroundColor3 = C.BAR, BorderSizePixel = 0 }, win)
+mk("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = C.LINE, BorderSizePixel = 0 }, topbar)
+makeLogo(topbar, 26, UDim2.new(0, 12, 0.5, -13))
+
+local title = txt(topbar, "Toolbox", 15, C.TEXT, Enum.Font.GothamBold)
+title.Position = UDim2.new(0, 48, 0, 0); title.Size = UDim2.new(0, 70, 1, 0)
+local credit = txt(topbar, 10, C.SUB)
+credit.Position = UDim2.new(0, 112, 0, 0); credit.Size = UDim2.new(0, 80, 1, 0)
+
+local function topBtn(text, xOff, col)
+	local b = mk("TextButton", {
+		Size = UDim2.fromOffset(30, 26), Position = UDim2.new(1, xOff, 0.5, -13), BackgroundColor3 = C.BAR,
+		Text = text, TextColor3 = C.SUB, Font = Enum.Font.GothamBold, TextSize = 15,
+		AutoButtonColor = false, BorderSizePixel = 0,
+	}, topbar)
+	round(b, 6)
+	b.MouseEnter:Connect(function() b.BackgroundColor3 = col or C.PANEL; b.TextColor3 = C.WHITE end)
+	b.MouseLeave:Connect(function() b.BackgroundColor3 = C.BAR; b.TextColor3 = C.SUB end)
+	return b
+end
+local closeBtn = topBtn("×", -38, C.RED)
+local minBtn = topBtn("–", -70)
+local setBtn = topBtn("⚙", -102)
+
+local function draggable(handle, target, onTap)
+	local dragging, start, startPos, moved = false, nil, nil, 0
+	handle.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			dragging = true; moved = 0; start = i.Position; startPos = target.Position
+			i.Changed:Connect(function()
+				if i.UserInputState == Enum.UserInputState.End then
+					dragging = false
+					if onTap and moved < 8 then onTap() end
+				end
+			end)
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(i)
+		if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			local d = i.Position - start
+			moved = math.max(moved, math.abs(d.X) + math.abs(d.Y))
+			target.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+		end
+	end)
+end
+draggable(topbar, win)
+
+local tabs = mk("ScrollingFrame", {
+	Size = UDim2.new(1, -24, 0, 30), Position = UDim2.new(0, 12, 0, TB), BackgroundTransparency = 1,
+	BorderSizePixel = 0, ScrollBarThickness = 0, CanvasSize = UDim2.new(),
+	AutomaticCanvasSize = Enum.AutomaticSize.X, ScrollingDirection = Enum.ScrollingDirection.X,
+}, win)
+mk("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, tabs)
+
+local tabBtns = {}
+local function setTab(cat)
+	for key, t in pairs(tabBtns) do
+		local on = (key == cat.key)
+		t.btn.TextColor3 = on and C.WHITE or C.SUB
+		t.bar.Visible = on
+	end
+end
+
+local searchRow = mk("Frame", {
+	Size = UDim2.new(1, -24, 0, 30), Position = UDim2.new(0, 12, 0, TB + 32), BackgroundTransparency = 1,
+}, win)
+local searchBg = mk("Frame", { Size = UDim2.new(1, -74, 1, 0), BackgroundColor3 = C.PANEL, BorderSizePixel = 0 }, searchRow)
+round(searchBg, 8); line(searchBg)
+local mag = txt(searchBg, "🔍", 13, C.SUB, Enum.Font.GothamBold, Enum.TextXAlignment.Center)
+mag.Size = UDim2.new(0, 30, 1, 0)
+local searchBox = mk("TextBox", {
+	Size = UDim2.new(1, -38, 1, 0), Position = UDim2.new(0, 32, 0, 0), BackgroundTransparency = 1,
+	PlaceholderText = "Cari di Marketplace...", PlaceholderColor3 = C.SUB, Text = "", TextColor3 = C.TEXT,
+	Font = Enum.Font.Gotham, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false,
+}, searchBg)
+local searchBtn = button(searchRow, "Cari", 12, C.BLUE)
+searchBtn.Size = UDim2.new(0, 66, 1, 0); searchBtn.Position = UDim2.new(1, -66, 0, 0)
+round(searchBtn, 8); hov(searchBtn, C.BLUE, C.BLUE2)
+
+local GRID_Y = TB + 66
+local gridWrap = mk("Frame", {
+	Size = UDim2.new(1, -24, 1, -(GRID_Y + 40)), Position = UDim2.new(0, 12, 0, GRID_Y),
+	BackgroundColor3 = C.PANEL, BorderSizePixel = 0, ClipsDescendants = true,
+}, win)
+round(gridWrap, 8); line(gridWrap)
+local grid = mk("ScrollingFrame", {
+	Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4,
+	ScrollBarImageColor3 = C.BLUE, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+}, gridWrap)
+mk("UIGridLayout", {
+	CellSize = UDim2.new(0.25, -9, 0, 108), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder,
+}, grid)
+mk("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8) }, grid)
+
+local footer = mk("Frame", { Size = UDim2.new(1, -24, 0, 30), Position = UDim2.new(0, 12, 1, -36), BackgroundTransparency = 1 }, win)
+local status = txt(footer, "Siap.", 10, C.SUB)
+status.Size = UDim2.new(1, -230, 1, 0); status.TextTruncate = Enum.TextTruncate.AtEnd
+
+local idBg = mk("Frame", { Size = UDim2.fromOffset(110, 26), Position = UDim2.new(1, -226, 0.5, -13), BackgroundColor3 = C.PANEL, BorderSizePixel = 0 }, footer)
+round(idBg, 7); line(idBg)
+local idBox = mk("TextBox", {
+	Size = UDim2.new(1, -12, 1, 0), Position = UDim2.new(0, 6, 0, 0), BackgroundTransparency = 1,
+	PlaceholderText = "# Asset ID", PlaceholderColor3 = C.SUB, Text = "", TextColor3 = C.TEXT,
+	Font = Enum.Font.Code, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false,
+}, idBg)
+local idBtn = button(footer, "Insert ID", 11, C.BLUE)
+idBtn.Size = UDim2.fromOffset(72, 26); idBtn.Position = UDim2.new(1, -110, 0.5, -13)
+round(idBtn, 7); hov(idBtn, C.BLUE, C.BLUE2)
+local stopBtn = button(footer, "■", 12, C.PANEL, C.SUB)
+stopBtn.Size = UDim2.fromOffset(32, 26); stopBtn.Position = UDim2.new(1, -32, 0.5, -13)
+round(stopBtn, 7); line(stopBtn); hov(stopBtn, C.PANEL, C.LINE)
+
+local function setStatus(msg, col)
+	status.Text = tostring(msg)
+	status.TextColor3 = col or C.SUB
+	pcall(function() print("[Dhafin Toolbox] " .. tostring(msg)) end)
+end
+
+local pop = mk("Frame", {
+	Size = UDim2.fromOffset(200, 116), Position = UDim2.new(1, -212, 0, TB + 6), BackgroundColor3 = C.BAR,
+	BorderSizePixel = 0, Visible = false, ZIndex = 20, Active = true,
+}, win)
+round(pop, 10); line(pop, C.LINE)
+mk("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 8) }, pop)
+mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, pop)
+
+local function toggleRow(order, text, key)
+	local row = mk("TextButton", { Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, LayoutOrder = order }, pop)
+	local l = txt(row, text, 11, C.TEXT); l.Size = UDim2.new(1, -44, 1, 0)
+	local track = mk("Frame", { Size = UDim2.fromOffset(34, 18), Position = UDim2.new(1, -34, 0.5, -9), BackgroundColor3 = C.LINE, BorderSizePixel = 0 }, row)
+	round(track, 9)
+	local knob = mk("Frame", { Size = UDim2.fromOffset(14, 14), Position = UDim2.fromOffset(2, 2), BackgroundColor3 = C.WHITE, BorderSizePixel = 0 }, track)
+	round(knob, 7)
+	local function render()
+		local on = S.opts[key]
+		track.BackgroundColor3 = on and C.BLUE or C.LINE
+		TweenService:Create(knob, TweenInfo.new(0.12), { Position = on and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2) }):Play()
+	end
+	row.MouseButton1Click:Connect(function() S.opts[key] = not S.opts[key]; render() end)
+	render()
+end
+toggleRow(1, "Kunci posisi (Anchor)", "anchor")
+toggleRow(2, "Kualitas tinggi (Precise)", "hifi")
+toggleRow(3, "Jalankan script otomatis", "autorun")
+
+setBtn.MouseButton1Click:Connect(function() pop.Visible = not pop.Visible end)
+
+local function httpGet(url)
+	local fn = (syn and syn.request) or (http and http.request) or http_request or request
+	if fn then
+		local ok, r = pcall(fn, { Url = url, Method = "GET" })
+		if ok and r and r.Body then return r.Body end
+	end
+	local ok, b = pcall(function() return game:HttpGet(url) end)
+	return ok and b or nil
+end
+local function decodeJson(s)
+	local ok, t = pcall(function() return HttpService:JSONDecode(s) end)
+	return ok and t or nil
+end
+local function normalize(raw)
+	if not raw then return nil end
+	local id, name
+	if raw.Asset then id = raw.Asset.Id or raw.Asset.id; name = raw.Asset.Name or raw.Asset.name
+	elseif raw.asset then id = raw.asset.id; name = raw.asset.name
+	else id = raw.id or raw.Id; name = raw.name or raw.Name end
+	if not id then return nil end
+	return { id = tonumber(id) or id, name = name or ("Asset " .. tostring(id)) }
+end
+local function searchAssets(cat, kw, page)
+	local res = {}
+	local url = ("https://apis.roblox.com/toolbox-service/v1/marketplace/%d?category=%d&keyword=%s&limit=30&sortType=0&page=%d")
+		:format(cat.id, cat.id, HttpService:UrlEncode(kw or ""), page)
+	local body = httpGet(url)
+	local d = body and decodeJson(body)
+	if d and d.data then
+		for _, r in ipairs(d.data) do
+			local n = normalize(r)
+			if n then table.insert(res, n) end
+		end
+	end
+	if #res == 0 and page == 1 then
+		local url2 = ("https://catalog.roblox.com/v1/search/items/details?Category=%s&Keyword=%s&Limit=30&sortType=0")
+			:format(cat.key, HttpService:UrlEncode(kw or ""))
+		local b2 = httpGet(url2)
+		local d2 = b2 and decodeJson(b2)
+		if d2 and d2.data then
+			for _, r in ipairs(d2.data) do
+				local n = normalize(r)
+				if n then table.insert(res, n) end
+			end
+		end
+	end
+	return res
+end
+local function getAssetName(id)
+	local ok, info = pcall(function() return MarketplaceService:GetProductInfo(tonumber(id)) end)
+	if ok and info and info.Name then return info.Name end
+end
+
+local baseEnv = getfenv()
+local loadStr = loadstring or (syn and syn.load) or (getgenv and getgenv().loadstring)
+local realRequire = require
+local BAD = { "failed to decompile", "not found", "decompiler error", "decompilation failed", "unable to decompile" }
+local function goodSrc(src)
+	if type(src) ~= "string" or #src < 3 then return false end
+	if #src < 160 then
+		local low = src:lower()
+		for _, b in ipairs(BAD) do if low:find(b, 1, true) then return false end end
+	end
+	return true
+end
+local function readSource(sc)
+	for attempt = 1, 2 do
+		local src
+		pcall(function() src = sc.Source end)
+		if goodSrc(src) then return src end
+		if decompile then local ok, r = pcall(decompile, sc); if ok and goodSrc(r) then return r end end
+		if getscriptsource then local ok, r = pcall(getscriptsource, sc); if ok and goodSrc(r) then return r end end
+		if gethiddenproperty then local ok, r = pcall(gethiddenproperty, sc, "Source"); if ok and goodSrc(r) then return r end end
+		if attempt < 2 then task.wait(0.15) end
+	end
+end
+
+local customRequire
+local function makeEnv(sc)
+	return setmetatable({ script = sc, owner = player, require = function(m) return customRequire(m) end }, { __index = baseEnv })
+end
+local function compileScript(sc)
+	local fn
+	local src = readSource(sc)
+	if src and loadStr then
+		local f = loadStr(src, "=" .. sc.Name)
+		if f and pcall(setfenv, f, makeEnv(sc)) then fn = f end
+	end
+	if not fn and getscriptclosure then
+		pcall(function()
+			local f = getscriptclosure(sc)
+			if f then pcall(setfenv, f, makeEnv(sc)); fn = f end
+		end)
+	end
+	return fn
+end
+local moduleCache = {}
+customRequire = function(m)
+	if typeof(m) == "Instance" and m:IsA("ModuleScript") then
+		if moduleCache[m] == nil then
+			local fn = compileScript(m)
+			if not fn then
+				local ok, res = pcall(realRequire, m)
+				if ok then return res end
+				error("Dhafin: gagal membaca ModuleScript " .. m.Name, 2)
+			end
+			local ok, res = pcall(fn)
+			if not ok then error(res, 2) end
+			moduleCache[m] = { res }
+		end
+		return moduleCache[m][1]
+	end
+	return realRequire(m)
+end
+
+local function runScripts(list)
+	local ran, failed = 0, 0
+	for _, sc in ipairs(list) do
+		local fn = compileScript(sc)
+		if fn then
+			pcall(function() sc.Disabled = false end)
+			task.spawn(function()
+				local ok, err = pcall(fn)
+				if not ok then setStatus("[SCRIPT ERR] " .. sc.Name .. ": " .. tostring(err), C.RED) end
+			end)
+			ran += 1
+		else
+			failed += 1
+		end
+	end
+	return ran, failed
+end
+
+local function countScripts(inst)
+	local n = 0
+	for _, d in ipairs(inst:GetDescendants()) do
+		if d:IsA("LuaSourceContainer") then n += 1 end
+	end
+	return n
+end
+
+local function loadModel(id)
+	local best, bestN, lastErr = nil, -1, nil
+	local ok1, res = pcall(function() return game:GetObjects("rbxassetid://" .. tostring(id)) end)
+	if ok1 and res and #res > 0 then
+		local c = Instance.new("Model"); c.Name = "DhafinLoaded"
+		for _, ch in ipairs(res) do ch.Parent = c end
+		best, bestN = c, countScripts(c)
+	else
+		lastErr = res
+	end
+	local m
+	local ok2, err = pcall(function() m = InsertService:LoadAsset(tonumber(id) or id) end)
+	if ok2 and m then
+		local n = countScripts(m)
+		if n > bestN then
+			if best then best:Destroy() end
+			best, bestN = m, n
+		else
+			m:Destroy()
+		end
+	else
+		lastErr = lastErr or err
+	end
+	return best, lastErr
+end
+
+local activeSound
+local function stopAudio()
+	if activeSound then pcall(function() activeSound:Destroy() end); activeSound = nil end
+end
+
+local function camFront(dist)
+	local cam = Workspace.CurrentCamera
+	return cam and (cam.CFrame * CFrame.new(0, 0, -dist)) or CFrame.new(0, 10, 0)
+end
+
+local function insertAsset(id, cat, name)
+	name = name or ("Asset " .. tostring(id))
+	setStatus("Memasukkan: " .. name, C.SUB)
+	local key = cat.key
+
+	if key == "Audio" then
+		stopAudio()
+		local s = mk("Sound", { Name = name, SoundId = "rbxassetid://" .. id, Volume = 1 }, SoundService)
+		activeSound = s
+		local t0 = tick()
+		while not s.IsLoaded and tick() - t0 < 6 do task.wait(0.1) end
+		pcall(function() s:Play() end)
+		setStatus("♪ Memutar: " .. name, C.GREEN)
+		return true
+	end
+
+	if key == "Decal" or key == "Texture" then
+		local p = mk("Part", { Name = name, Size = Vector3.new(4, 4, 0.5), Anchored = true, CFrame = camFront(10) }, Workspace)
+		for _, face in ipairs({ "Front", "Back", "Top", "Bottom", "Left", "Right" }) do
+			mk("Decal", { Texture = "rbxassetid://" .. id, Face = Enum.NormalId[face] }, p)
+		end
+		setStatus("Decal dipasang: " .. name, C.GREEN)
+		return true
+	end
+
+	if key == "Mesh" then
+		local p = mk("Part", { Name = name, Size = Vector3.new(4, 4, 4), Anchored = true, CFrame = camFront(12) }, Workspace)
+		mk("SpecialMesh", { MeshType = Enum.MeshType.FileMesh, MeshId = "rbxassetid://" .. id }, p)
+		setStatus("Mesh dipasang: " .. name, C.GREEN)
+		return true
+	end
+
+	if key == "Animation" then
+		local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if not hum then setStatus("[!] Karakter tidak ditemukan", C.RED); return false end
+		local anim = mk("Animation", { Name = name, AnimationId = "rbxassetid://" .. id }, nil)
+		local ok = pcall(function() hum:LoadAnimation(anim):Play() end)
+		setStatus(ok and ("Animasi diputar: " .. name) or "[!] Animasi gagal diputar", ok and C.GREEN or C.RED)
+		return ok
+	end
+
+	local model, err = loadModel(id)
+	if not model then setStatus("[ERROR] " .. tostring(err), C.RED); return false end
+
+	local scripts, parts = {}, 0
+	for _, d in ipairs(model:GetDescendants()) do
+		pcall(function()
+			if d:IsA("BasePart") then
+				parts += 1
+				if S.opts.anchor then d.Anchored = true end
+				if S.opts.hifi and (d:IsA("MeshPart") or d:IsA("UnionOperation")) then
+					d.RenderFidelity = Enum.RenderFidelity.Precise
+				end
+			elseif d:IsA("LocalScript") or d:IsA("Script") then
+				table.insert(scripts, d)
+			end
+		end)
+	end
+
+	model.Name = name
+	model.Parent = Workspace
+	pcall(function() model:PivotTo(camFront(15)) end)
+	local total = countScripts(model)
+	setStatus(("Disisipkan: %s • %d part • %d script"):format(name, parts, total), C.GREEN)
+
+	if #scripts > 0 and S.opts.autorun then
+		if not loadStr then
+			setStatus("[!] Executor tanpa loadstring - script tidak dijalankan", C.RED)
+		else
+			local ran, failed = runScripts(scripts)
+			if failed > 0 then
+				setStatus(("%d script jalan, %d tidak terbaca (script server tidak dikirim Roblox ke client)"):format(ran, failed), C.RED)
+			else
+				setStatus(("Disisipkan: %s • %d script dijalankan"):format(name, ran), C.GREEN)
+			end
+		end
+	end
+	return true
+end
+
+local function clearGrid()
+	for _, c in ipairs(grid:GetChildren()) do
+		if c:IsA("GuiObject") then c:Destroy() end
+	end
+	S.cards = {}
+end
+
+local function notice(text, order)
+	local f = mk("Frame", { BackgroundTransparency = 1, LayoutOrder = order or 0, Size = UDim2.new(1, 0, 0, 108) }, grid)
+	local l = txt(f, text, 11, C.SUB, Enum.Font.Gotham, Enum.TextXAlignment.Center)
+	l.Size = UDim2.fromScale(1, 1); l.TextWrapped = true
+	return f
+end
+
+local function addTile(item, order)
+	local t = mk("Frame", { BackgroundColor3 = C.TILE, BorderSizePixel = 0, LayoutOrder = order }, grid)
+	round(t, 8); line(t)
+	local img = mk("ImageLabel", {
+		Size = UDim2.new(1, -12, 0, 56), Position = UDim2.fromOffset(6, 6), BackgroundColor3 = C.PANEL,
+		BorderSizePixel = 0, Image = "rbxthumb://type=Asset&id=" .. tostring(item.id) .. "&w=150&h=150",
+		ScaleType = Enum.ScaleType.Fit,
+	}, t)
+	round(img, 6)
+	local nm = txt(t, item.name, 10, C.TEXT, Enum.Font.GothamBold)
+	nm.Position = UDim2.fromOffset(6, 65); nm.Size = UDim2.new(1, -12, 0, 14); nm.TextTruncate = Enum.TextTruncate.AtEnd
+
+	local b = button(t, "Insert", 11, C.BLUE)
+	b.Size = UDim2.new(1, -12, 0, 20); b.Position = UDim2.new(0, 6, 1, -26)
+	round(b, 5); hov(b, C.BLUE, C.BLUE2)
+	local busy = false
+	b.MouseButton1Click:Connect(function()
+		if busy then return end
+		busy = true; b.Text = "..."
+		task.spawn(function()
+			local ok = insertAsset(item.id, S.cat, item.name)
+			b.Text = ok and "✓" or "✗"
+			b.BackgroundColor3 = ok and C.GREEN or C.RED
+			task.wait(1.2)
+			b.Text = "Insert"; b.BackgroundColor3 = C.BLUE; busy = false
+		end)
+	end)
+	return { item = item, nameLbl = nm }
+end
+
+local function enrichNames(cards, token)
+	task.spawn(function()
+		for _, c in ipairs(cards) do
+			if token ~= S.token or not c.nameLbl.Parent then return end
+			local nm = getAssetName(c.item.id)
+			if nm then c.item.name = nm; c.nameLbl.Text = nm end
+			task.wait(0.03)
+		end
+	end)
+end
+
+local runSearch
+runSearch = function(append)
+	S.token += 1
+	local my = S.token
+	if not append then
+		S.page = 1
+		clearGrid()
+	else
+		for _, c in ipairs(grid:GetChildren()) do
+			if c.Name == "MoreTile" then c:Destroy() end
+		end
+	end
+	local ph = notice("⏳ Mengambil data...", 100000)
+	setStatus("Mencari " .. S.cat.label .. (S.kw ~= "" and (" • " .. S.kw) or "") .. "...", C.SUB)
+	task.spawn(function()
+		local list = searchAssets(S.cat, S.kw, S.page)
+		if my ~= S.token then return end
+		pcall(function() ph:Destroy() end)
+		if #list == 0 and not append then
+			notice("Tidak ada hasil.\nCoba kata lain atau pakai Asset ID di bawah.", 1)
+			setStatus("Tidak ada hasil", C.RED)
+			return
+		end
+		local newCards = {}
+		local base = #S.cards
+		for i, it in ipairs(list) do
+			local card = addTile(it, base + i)
+			table.insert(S.cards, card); table.insert(newCards, card)
+		end
+		if #list >= 20 then
+			local more = button(grid, "Muat lagi", 11, C.PANEL, C.BLUE2)
+			more.Name = "MoreTile"; more.LayoutOrder = 99999
+			round(more, 8); line(more, C.BLUE); hov(more, C.PANEL, C.TILE)
+			more.MouseButton1Click:Connect(function()
+				S.page += 1
+				runSearch(true)
+			end)
+		end
+		setStatus(("Ditemukan %d hasil"):format(#S.cards), C.GREEN)
+		enrichNames(newCards, my)
+	end)
+end
+
+for i, cat in ipairs(CATS) do
+	local b = mk("TextButton", {
+		Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1,
+		Text = cat.label, TextColor3 = C.SUB, Font = Enum.Font.GothamMedium, TextSize = 12,
+		AutoButtonColor = false, LayoutOrder = i,
+	}, tabs)
+	mk("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }, b)
+	local bar = mk("Frame", { Size = UDim2.new(1, -16, 0, 2), Position = UDim2.new(0, 8, 1, -3), BackgroundColor3 = C.BLUE, BorderSizePixel = 0, Visible = false }, b)
+	round(bar, 1)
+	tabBtns[cat.key] = { btn = b, bar = bar }
+	b.MouseEnter:Connect(function() if S.cat ~= cat then b.TextColor3 = C.TEXT end end)
+	b.MouseLeave:Connect(function() if S.cat ~= cat then b.TextColor3 = C.SUB end end)
+	b.MouseButton1Click:Connect(function()
+		S.cat = cat; setTab(cat)
+		searchBox.Text = ""; S.kw = ""
+		runSearch(false)
+	end)
+end
+setTab(S.cat)
+
+local function doSearch()
+	S.kw = searchBox.Text or ""
+	runSearch(false)
+end
+searchBtn.MouseButton1Click:Connect(doSearch)
+searchBox.FocusLost:Connect(function(enter) if enter then doSearch() end end)
+
+idBtn.MouseButton1Click:Connect(function()
+	local id = tonumber(idBox.Text)
+	if not id then setStatus("[!] Masukkan Asset ID yang valid", C.RED); return end
+	idBtn.Text = "..."
+	task.spawn(function()
+		local nm = getAssetName(id) or ("Asset " .. id)
+		local ok = insertAsset(id, S.cat, nm)
+		idBtn.Text = ok and "✓" or "✗"
+		task.wait(1.2)
+		idBtn.Text = "Insert ID"
+	end)
+end)
+stopBtn.MouseButton1Click:Connect(function()
+	stopAudio()
+	setStatus("Audio dihentikan", C.SUB)
+end)
+
+local floatBtn = mk("Frame", {
+	Name = "FloatIcon", Size = UDim2.fromOffset(52, 52), Position = UDim2.new(0.5, -26, 0, 56),
+	BackgroundColor3 = C.BAR, BorderSizePixel = 0, Visible = false, Active = true,
+}, gui)
+round(floatBtn, 14); line(floatBtn, C.BLUE, 2)
+makeLogo(floatBtn, 30, UDim2.new(0.5, -15, 0.5, -15))
+local function setOpen(open)
+	win.Visible = open
+	floatBtn.Visible = not open
+	pop.Visible = false
+end
+draggable(floatBtn, floatBtn, function() setOpen(true) end)
+minBtn.MouseButton1Click:Connect(function() setOpen(false) end)
+closeBtn.MouseButton1Click:Connect(function()
+	stopAudio()
+	gui:Destroy()
+end)
+
+task.spawn(function()
+	task.wait(0.4)
+	runSearch(false)
+end)
+print("[ TOOLBOX] ✅ Dimuat • ")
